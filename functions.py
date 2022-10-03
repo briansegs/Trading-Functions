@@ -28,6 +28,9 @@ sma = 20
 
 index_pos = 1
 
+# Time between trades
+pause_time = 60
+
 
 # ask_bid()[0] = ask, [1] = bid
 # ask_bid(symbol) if none given, uses defaults
@@ -148,3 +151,56 @@ def kill_switch(symbol=symbol):
             print('++++++ SOMETHING I DIDNT EXPECT IN KILL SWITCH FUNCTION')
 
         openposi = open_positions(symbol)[1]
+
+# 50:00
+# sleep_on_close:
+#   - pulls closed orders
+#   - if last close was in last 59min then sleep for 1min
+#   - sincelasttrade = minutes since last trade
+#   - puase in mins
+def sleep_on_close(symbol=symbol, pause_time=pause_time):
+    closed_orders = kucoin.fetch_closed_orders(symbol)
+    #print(closed_orders)
+
+    for ord in closed_orders[-1::-1]:
+        sincelasttrade = pause_time - 1 # how long we pause
+
+        filled = False
+
+        status = ord['info']['ordStatus']
+        txttime = ord['info']['transactTimes']
+        txttime = int(txttime)
+        txttime = round((txttime/1000000000)) # bc in nanoseconds
+        print(f'for {symbol} this is the status of the order {status} with epoch {txttime}')
+        print('next iteration...')
+        print('--------')
+
+        if status == 'Filled':
+            print('FOUND the order with last fill..')
+            print(f'for {symbol} this is the time {txttime} this is the orderstatus {status}')
+            orderbook = kucoin.fetch_order_book(symbol)
+            ex_timestamp = orderbook['timestamp'] # in ms
+            ex_timestamp = int(ex_timestamp/1000)
+            print('---- below is the transaction time then exchange epoch time')
+            print(txttime)
+            print(ex_timestamp)
+
+            time_spread = (ex_timestamp - txttime)/60
+
+            if time_spread < sincelasttrade:
+                #print('time since last trade is less than time spread')
+                ##if in posis true, put a close order here
+                #if in_pos == True:
+                sleepy = round(sincelasttrade-time_spread)*60
+                sleepy_min = sleepy/60
+
+                print(f'the time spread is less than {sincelasttrade} mins its been {time_spread}mins.. so we SlEEP')
+                time.sleep(60)
+
+            else:
+                print(f'its been {time_spread} mins since last fill so not sleeping cuz since last trade is {sincelasttrade}')
+            break
+        else:
+            continue
+
+    print(f'done with the sleep on close function for {symbol}..')
