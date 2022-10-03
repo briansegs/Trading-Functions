@@ -69,7 +69,11 @@ def df_sma(symbol=symbol, timeframe=timeframe, limit=limit, sma=sma):
 # TODO: Test with ccxt.kucoinfutures
 # TODO: make a function that loops through dictionary and assigns index to symbol
 # open_positions(open_positions, openpos_bool, openpos_size, long):
-def open_positions(index_pos=index_pos):
+def open_positions(symbol=symbol):
+
+    # what is the position index for that symbol?
+    # 43:00
+
     params = {'type':'swap', 'code':'USD'}
     phe_bal = kucoin.fetch_balance(params=params)
     open_positions = phe_bal['info']['data']['positions']
@@ -92,3 +96,44 @@ def open_positions(index_pos=index_pos):
     print(f'open_positions... | openpos_bool: {openpos_bool} | openpos_size: {openpos_size} | long: {long}')
 
     return open_positions, openpos_bool, openpos_size, long
+
+# 36:00
+# Notes:
+#   - kill_switch() needs open_positions() to work correctly
+
+def kill_switch(symbol=symbol):
+    print('starting the kill switch')
+    openposi = open_positions()[1] # true or false
+    long = open_positions()[3]# true or false
+    kill_size = open_positions()[2]# size of open position
+
+    print(f'openposi {openposi}, long {long}, size {kill_size}')
+
+    while openposi == True:
+        print('starting kill switch loop til limit fil..')
+        temp_df = pd.DataFrame()
+        print('just made a temp df')
+
+        #kucoin.cancel_all_orders(symbol)
+        openposi = open_positions()[1]
+        long = open_positions()[3]# true or false
+        kill_size = open_positions()[2]
+        kill_size = int(kill_size)
+
+        ask = ask_bid(symbol)[0]
+        bid = ask_bid(symbol)[1]
+
+        if long == False:
+            #kucoin.create_limit_buy_order(symbol, kill_size, bid, params)
+            print(f'just made a BUY to CLOSE order of {kill_size} {symbol} at ${bid}')
+            print(f'sleeping for 30 seconds to see of it fills..')
+            time.sleep(30)
+        elif long == True:
+            #kucoin.create_limit_sell_order(symbol, kill_size, ask, params)
+            print(f'just made a SELL to CLOSE order of {kill_size} {symbol} at ${ask}')
+            print('sleeping for 30 seconds to see of it fills..')
+            time.sleep(30)
+        else:
+            print('++++++ SOMETHING I DIDNT EXPECT IN KILL SWITCH FUNCTION')
+
+        openposi = open_positions()[1]
