@@ -9,6 +9,7 @@ kucoin = ccxt.kucoin({
     'enableRateLimit': True,
     'apiKey': c.API_KEY,
     'secret': c.API_SECRET,
+    'password': c.API_PASSPHRASE,
 })
 
 # Params:
@@ -24,6 +25,8 @@ timeframe = '4h'
 limit = 100
 sma = 20
 
+index_pos = 1
+
 
 # ask_bid()[0] = ask, [1] = bid
 # ask_bid(symbol) if none given, uses defaults
@@ -36,10 +39,9 @@ def ask_bid(symbol=symbol):
     print(f'This is the ask for {symbol}: {ask}')
 
     return ask, bid
-
-# Dataframe SMA: 6:16
+# 6:16
+# df_sma(symbol, timeframe, limit, sma): # if not passed, uses defaults
 # Returns: dataframe(df_sma) with sma and trade signal
-# Call: df_sma(symbol, timeframe, limit, sma) # if not passed, uses defaults
 def df_sma(symbol=symbol, timeframe=timeframe, limit=limit, sma=sma):
     print('starting...')
     bars = kucoin.fetch_ohlcv(symbol, timeframe=timeframe, limit=limit)
@@ -59,4 +61,34 @@ def df_sma(symbol=symbol, timeframe=timeframe, limit=limit, sma=sma):
     print(df_sma)
     return df_sma
 
-#23:30
+# 25:00
+# Notes:
+#   - Doesn't work for ccxt.kucoin
+#   - Might work for ccxt.kucoinfutures
+#   - Needs work...
+# TODO: Test with ccxt.kucoinfutures
+# TODO: make a function that loops through dictionary and assigns index to symbol
+# open_positions(open_positions, openpos_bool, openpos_size, long):
+def open_positions(index_pos=index_pos):
+    params = {'type':'swap', 'code':'USD'}
+    phe_bal = kucoin.fetch_balance(params=params)
+    open_positions = phe_bal['info']['data']['positions']
+    #print(open_positions)
+
+    openpos_side = open_positions[index_pos]['side'] # btc [3] [0] = doge, [1] ape
+    openpos_size = open_positions[index_pos]['size']
+    #print(open_positions)
+
+    if openpos_side == ('Buy'):
+        openpos_bool = True
+        long = True
+    elif openpos_side == ('Sell'):
+        openpos_bool = True
+        long = False
+    else:
+        openpos_bool = False
+        long = None
+
+    print(f'open_positions... | openpos_bool: {openpos_bool} | openpos_size: {openpos_size} | long: {long}')
+
+    return open_positions, openpos_bool, openpos_size, long
