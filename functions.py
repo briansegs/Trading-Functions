@@ -31,6 +31,12 @@ index_pos = 1
 # Time between trades
 pause_time = 60
 
+# For volume calc
+# vol_repeat * vol_time == TIME of volume collection
+vol_repeat = 11
+vol_time = 5
+
+
 
 # ask_bid()[0] = ask, [1] = bid
 # ask_bid(symbol) if none given, uses defaults
@@ -204,3 +210,116 @@ def sleep_on_close(symbol=symbol, pause_time=pause_time):
             continue
 
     print(f'done with the sleep on close function for {symbol}..')
+
+# 59:13
+# orderbook:
+def ob(symbol=symbol, vol_repeat=vol_repeat, vol_time=vol_time):
+    print(f'fetching order book data for {symbol}...')
+
+    df = pd.DataFrame()
+    temp_df = pd.DataFrame()
+
+    ob = kucoin.fetch_order_book(symbol)
+    #print(ob)
+    bids = ob['bids']
+    asks = ob['asks']
+
+    first_bid = bids[0]
+    first_ask = asks[0]
+
+    bid_vol_list = []
+    ask_vol_list = []
+
+    # If SELL vol > buy vol AND profit target hit, exit
+    # get last 1min of volume.. and if sell > buy vol do x
+# TODO:
+#   - make range a variable
+    for x in range(vol_repeat):
+
+        for set in bids:
+        #print(set)
+            price = set[0]
+            vol = set[1]
+            bid_vol_list.append(vol)
+            #print(price)
+            #print(vol)
+
+            #print(bid_vol_list)
+            sum_bidvol = sum(bid_vol_list)
+            #print(sum_bidvol)
+            temp_df['bid_vol'] = [sum_bidvol]
+
+        for set in asks:
+            #print(set)
+            price = set[0] # [40000, 344]
+            vol = set[1]
+            ask_vol_list.append(vol)
+            #print(price)
+            #print(vol)
+
+            sum_askvol = sum(ask_vol_list)
+            temp_df['ask_vol'] = [sum_askvol]
+
+        #print(temp_df)
+        time.sleep(vol_time) # change back to 5 later
+        df = df.append(temp_df)
+        print(df)
+        print(' ')
+        print('------')
+        print(' ')
+    print(f'done collecting volume data for bids and asks..')
+    print('calculating the sums..')
+    total_bidvol = df['bid_vol'].sum()
+    total_askvol = df['ask_vol'].sum()
+
+    seconds = vol_time * vol_repeat
+    mins = round(seconds / 60, 2)
+    print(f'last {mins}mins for {symbol} this is total Bid Vol: {total_bidvol} | ask_vol: {total_askvol}')
+
+    if total_bidvol > total_askvol:
+        control_dec = (total_askvol/total_bidvol)
+        print(f'Bulls are in control: {control_dec}')
+        # if bulls are in control, use regular target
+        bullish = True
+    else:
+        control_dec = (total_bidvol / total_askvol)
+        print(f'Bears are in control: {control_dec}...')
+        bullish = False
+
+        # open_positions() open_positions, openpos_bool, openpos_size, long
+
+        open_posi = open_positions(symbol)
+        openpos_tf = open_posi[1]
+        long = open_posi[3]
+        print(f'openpos_tf: {openpos_tf} || long: {long}')
+
+        # if target is hit, check book vol
+        # if bool vol is < .4.. stay in pos... sleep?
+        # need to check to see if long or short
+
+        if openpos_tf == True:
+            if long == True:
+                print('we are in a long position...')
+                if control_dec < vol_decimal: # vol_decimal set to .4 at top
+                    vol_under_dec = True
+                    #print('going to sleep for a minute.. cuz under vol decimal')
+                    #time.sleep(6) # change to 60
+                else:
+                    print('volume is not under dec so setting vol_under_dec to False')
+                    vol_under_dec = False
+            else:
+                print('we are in a short position...')
+                if control_dec < vol_decimal: # vol_decimal set to .4 at top
+                    vol_under_dec = True
+                    #print('going to sleep for a minute.. cuz under vol decimal')
+                    #time.sleep(6) # change to 60
+                else:
+                    print('volume is under dec so setting vol_under_dec to False')
+                    vol_under_dec = False
+        else:
+            print('we are not in position...')
+            vol_under_dec = None
+        # when vol_under_dec == False AND target hit, then exit
+        print(vol_under_dec)
+
+        return vol_under_dec
