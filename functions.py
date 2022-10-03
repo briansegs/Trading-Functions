@@ -1,4 +1,5 @@
 from operator import index
+from pickle import TRUE
 import ccxt
 import json
 import pandas as pd
@@ -115,7 +116,7 @@ def open_positions(symbol=symbol):
 
     print(f'open_positions... | openpos_bool: {openpos_bool} | openpos_size: {openpos_size} | long: {long}')
 
-    return open_positions, openpos_bool, openpos_size, long
+    return open_positions, openpos_bool, openpos_size, long, index_pos
 
 # 36:00
 # Notes:
@@ -323,3 +324,108 @@ def ob(symbol=symbol, vol_repeat=vol_repeat, vol_time=vol_time):
         print(vol_under_dec)
 
         return vol_under_dec
+
+# 1:13:40
+# pnl_close() [0] pnlclose and [1] in_pos [2]size [3]long TF
+# Notes:
+#   - Doesn't work with ccxt.kucoin
+#   - Try ccxt.kucoinfutures
+def pnl_close(symbol=symbol):
+    print(f'checking to see if its time to exit for {symbol}...')
+
+    params = {'type': 'swap', 'code': 'USD'}
+    pos_dict = kucoin.fetch_positions(params=params)
+    #print(pos_dict)
+
+    index_pos = open_positions(symbol)[4]
+    pos_dict = pos_dict[index_pos] # btc [3 ] [0] = doge, [1] ape
+    side = pos_dict['side']
+    size = pos_dict['contracts']
+    entry_price = float(pos_dict['entryPrice'])
+    leverage = float(pos_dict['leverage'])
+
+    current_price = ask_bid(symbol)[1]
+
+    print(f'side: {side} | entry_price: {entry_price} | lev: {leverage}')
+    # short or long
+
+    if side == 'long':
+        diff = current_price - entry_price
+        long = True
+    else:
+        diff = entry_price - current_price
+        long = False
+
+    try:
+        perc = round(((diff/entry_price) *  leverage), 10)
+    except:
+        perc = 0
+
+    perc = 100 * perc
+    print(f'for {symbol} this is our PNL percentage: {(perc)}%')
+
+    pnlclose = False
+    in_pos = False
+
+    if perc > 0:
+        in_pos = True
+        print(f'for {symbol} we are in a winning position')
+        if perc > target:
+            print(':) :) we are in profit & hit target.. checking volume to see if we ')
+            pnlclose = True
+            vol_under_dec == obj(symbol) # return TF
+            if vol_under_dec == True:
+                print(f'volume is under the decimal threshold we set of {vol_decimal}')
+                time.sleep(30)
+            else:
+                print(f':) :) :) starting the kill switch because we hit our target')
+                #kill_switch()
+        else:
+            print('we have not hit our target yet')
+    elif perc < 0: # -10, -20
+        in_pos = True
+
+        if perc <= max_loss: # under -55, -56
+            print(f'we need to exit now down {perc}... so starting the kill switch..')
+            #kill_switch()
+        else:
+            print(f'we are in a losing position of {perc}.. but chillen cause max loss')
+    else:
+        print('we are not in position')
+
+    if in_pos == True:
+        #if breaks over .8% over 15m sma, then close pos (STOP LOSS)
+
+        #pull in 15m sma
+        timeframe = '15m'
+        df_f = df_sma(symbol, timeframe, 100, 20)
+        print(df_f)
+        #df_f['sma20_15'] # last value of this
+        last_sma15 = df_f.iloc[-1][f'sma{sma}_{timeframe}']
+        last_sma15 = int(last_sma15)
+        # pull current bid
+        curr_bid = ask_bid(symbol)[1]
+        curr_bid = int(curr_bid)
+        print(curr_bid)
+
+        sl_val = last_sma15 * 1.008
+        print(sl_val)
+
+#Note: Turn kill_switch() on
+
+        # 5/11 - remove the below and implementing a 55% stop loss
+            # in the pnl section
+        #if curr_bid > sl_val:
+        #    print('current bid is above stop loss value.. starting kill switch..')
+        #    kill_switch(symbol)
+        #else:
+        #    print('chillen in position..')
+    else:
+        print('we are not in position..')
+
+    print(f'for {symbol} just finished checking PNL close..')
+
+    return pnlclose, in_pos, size, long
+
+
+# 1:29:14
