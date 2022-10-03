@@ -1,3 +1,4 @@
+from operator import index
 import ccxt
 import json
 import pandas as pd
@@ -73,6 +74,16 @@ def open_positions(symbol=symbol):
 
     # what is the position index for that symbol?
     # 43:00
+    if symbol == 'uBTCUSD':
+        index_pos = 3
+    elif symbol == 'APEUSD':
+        index_pos = 1
+    elif symbol == 'ETHUSD':
+        index_pos = 2
+    elif symbol == 'DOGEUSD':
+        index_pos = 0
+    else:
+        index_pos = None
 
     params = {'type':'swap', 'code':'USD'}
     phe_bal = kucoin.fetch_balance(params=params)
@@ -100,12 +111,12 @@ def open_positions(symbol=symbol):
 # 36:00
 # Notes:
 #   - kill_switch() needs open_positions() to work correctly
-
+# kill_switch: pass in (symbol) if no symbol uses default
 def kill_switch(symbol=symbol):
-    print('starting the kill switch')
-    openposi = open_positions()[1] # true or false
-    long = open_positions()[3]# true or false
-    kill_size = open_positions()[2]# size of open position
+    print(f'starting the kill switch for {symbol}')
+    openposi = open_positions(symbol)[1] # true or false
+    long = open_positions(symbol)[3]# true or false
+    kill_size = open_positions(symbol)[2]# size of open position
 
     print(f'openposi {openposi}, long {long}, size {kill_size}')
 
@@ -115,9 +126,9 @@ def kill_switch(symbol=symbol):
         print('just made a temp df')
 
         #kucoin.cancel_all_orders(symbol)
-        openposi = open_positions()[1]
-        long = open_positions()[3]# true or false
-        kill_size = open_positions()[2]
+        openposi = open_positions(symbol)[1]
+        long = open_positions(symbol)[3]# true or false
+        kill_size = open_positions(symbol)[2]
         kill_size = int(kill_size)
 
         ask = ask_bid(symbol)[0]
@@ -136,4 +147,4 @@ def kill_switch(symbol=symbol):
         else:
             print('++++++ SOMETHING I DIDNT EXPECT IN KILL SWITCH FUNCTION')
 
-        openposi = open_positions()[1]
+        openposi = open_positions(symbol)[1]
