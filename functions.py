@@ -39,11 +39,14 @@ vol_time = 5
 
 
 
-# ask_bid()[0] = ask, [1] = bid
-# ask_bid(symbol) if none given, uses defaults
-def ask_bid(symbol=symbol):
-    ob = kucoin.fetch_order_book(symbol)
 
+
+def ask_bid(symbol=symbol):
+    '''
+    ask_bid(symbol): if no argument, uses defaults
+    Returns: ask, bid
+    '''
+    ob = kucoin.fetch_order_book(symbol)
     bid = ob['bids'][0][0]
     ask = ob['asks'][0][0]
 
@@ -52,9 +55,11 @@ def ask_bid(symbol=symbol):
     return ask, bid
 
 # 6:16
-# df_sma(symbol, timeframe, limit, sma): # if not passed, uses defaults
-# Returns: dataframe(df_sma) with sma and trade signal
 def df_sma(symbol=symbol, timeframe=timeframe, limit=limit, sma=sma):
+    '''
+    df_sma(symbol, timeframe, limit, sma): if no argument, uses defaults
+    Returns: df_sma
+    '''
     print('starting...')
     bars = kucoin.fetch_ohlcv(symbol, timeframe=timeframe, limit=limit)
 
@@ -65,8 +70,6 @@ def df_sma(symbol=symbol, timeframe=timeframe, limit=limit, sma=sma):
     df_sma[f'sma{sma}_{timeframe}'] = df_sma.close.rolling(sma).mean()
 
     bid = ask_bid(symbol)[1]
-    # if bid < the sma then = BEARISH, if bid > sma = BULLISH
-    # if sma > bid = SELL, if  sma < bid = BUY
     df_sma.loc[df_sma[f'sma{sma}_{timeframe}']>bid, 'signal'] = 'SELL'
     df_sma.loc[df_sma[f'sma{sma}_{timeframe}']<bid, 'signal'] = 'BUY'
 
