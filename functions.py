@@ -7,15 +7,15 @@ import config as c
 from datetime import date, datetime, timezone, tzinfo
 import time, schedule
 
-kucoin = ccxt.kucoin({
+kucoin = ccxt.kucoinfutures({
     'enableRateLimit': True,
-    'apiKey': c.API_KEY,
-    'secret': c.API_SECRET,
-    'password': c.API_PASSPHRASE,
+    'apiKey': c.kc_futures['API_KEY'],
+    'secret': c.kc_futures['API_SECRET'],
+    'password': c.kc_futures['API_PASSPHRASE'],
 })
 
 # Params:
-symbol = 'BTC-USDT'
+symbol = 'XBTUSDTM'
 pos_size = 100 # 125, 75,
 params = {'timeInForce': 'PostOnly'}
 target = 35
@@ -50,6 +50,7 @@ def ask_bid(symbol=symbol):
     print(f'This is the ask for {symbol}: {ask}')
 
     return ask, bid
+
 # 6:16
 # df_sma(symbol, timeframe, limit, sma): # if not passed, uses defaults
 # Returns: dataframe(df_sma) with sma and trade signal
