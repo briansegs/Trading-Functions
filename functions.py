@@ -43,6 +43,7 @@ vol_time = 5
 
 def ask_bid(symbol=symbol):
     '''
+    Ask bid:
     ask_bid(symbol): if no argument, uses defaults
     Returns: ask, bid
     '''
@@ -57,6 +58,7 @@ def ask_bid(symbol=symbol):
 # 6:16
 def df_sma(symbol=symbol, timeframe=timeframe, limit=limit, sma=sma):
     '''
+    Dataframe SMA:
     df_sma(symbol, timeframe, limit, sma): if no argument, uses defaults
     Returns: df_sma
     '''
@@ -77,50 +79,39 @@ def df_sma(symbol=symbol, timeframe=timeframe, limit=limit, sma=sma):
     return df_sma
 
 # 25:00
-# Notes:
-#   - Doesn't work for ccxt.kucoin
-#   - Might work for ccxt.kucoinfutures
-#   - Needs work...
-# TODO: Test with ccxt.kucoinfutures
 # TODO: make a function that loops through dictionary and assigns index to symbol
-# open_positions(open_positions, openpos_bool, openpos_size, long):
 def open_positions(symbol=symbol):
-
+    '''
+    Open positions:
+    open_positions(symbol): if no argument, uses defaults
+    Returns: open_positions, openpos_bool, openpos_size, long, index
+    '''
     # what is the position index for that symbol?
     # 43:00
-    if symbol == 'uBTCUSD':
-        index_pos = 3
-    elif symbol == 'APEUSD':
-        index_pos = 1
-    elif symbol == 'ETHUSD':
-        index_pos = 2
-    elif symbol == 'DOGEUSD':
-        index_pos = 0
+
+    if symbol == 'XBTUSDTM':
+        index = 0
+    elif symbol == 'SOLUSDTM':
+        index = 1
     else:
-        index_pos = None
+        index = None
 
-    params = {'type':'swap', 'code':'USD'}
-    phe_bal = kucoin.fetch_balance(params=params)
-    open_positions = phe_bal['info']['data']['positions']
-    #print(open_positions)
+    open_positions = kucoin.fetch_positions()
+    position_side = open_positions[index]['side']
+    position_size = open_positions[index]['contractSize']
 
-    openpos_side = open_positions[index_pos]['side'] # btc [3] [0] = doge, [1] ape
-    openpos_size = open_positions[index_pos]['size']
-    #print(open_positions)
-
-    if openpos_side == ('Buy'):
+    if position_side == ('long'):
         openpos_bool = True
         long = True
-    elif openpos_side == ('Sell'):
+    elif position_side == ('short'):
         openpos_bool = True
         long = False
     else:
         openpos_bool = False
         long = None
 
-    print(f'open_positions... | openpos_bool: {openpos_bool} | openpos_size: {openpos_size} | long: {long}')
-
-    return open_positions, openpos_bool, openpos_size, long, index_pos
+    print(f'symbol: {symbol} | openpos_bool: {openpos_bool} | position size: {position_size} | long: {long}')
+    return open_positions, openpos_bool, position_size, long, index
 
 # 36:00
 # Notes:
